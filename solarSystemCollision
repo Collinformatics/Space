@@ -1,0 +1,211 @@
+import pygame
+import math
+
+
+pygame.init()
+
+font = pygame.font.SysFont("comicsans", 16)
+
+# Window parameters
+width = pygame.display.Info().current_w
+height = pygame.display.Info().current_h
+window = pygame.display.set_mode((width, height))
+pygame.display.set_caption('Solar System Simulation')
+
+# Define colors
+black = '#000000'
+grey = '#989898'
+white = '#FFFFFF'
+red = '#DC0707'
+orange = '#D06507'
+yellow = '#FFD918'
+limeGreen = '#0FEC05'
+green = '#0F5B0F'
+cyan = '#17ECEC'
+blue = '#054FA4'
+darkBlue = '#11387B'
+purple = '#3D1075'
+pink = '#ED0FF5'
+magenta = '#EC0588'
+
+# System A
+originStarA = [-300*10**10, -125*10**10]
+colorStarA = cyan
+colorPlanetA1 = magenta
+colorMoonA2i = grey
+colorPlanetA2 = limeGreen
+colorPlanetA3 = orange
+
+# SystemB
+originStarB = [275*10**10, 110*10**10]
+colorStarB = red
+colorPlanetB1 = yellow
+colorPlanetB2 = pink
+colorPlanetB3 = purple
+colorMoonB3i = white
+
+FONT = pygame.font.SysFont('Courier New', 20, bold=True)
+
+
+class Planet:
+    AU = 149.6e6 * 1000
+    gravity = 6.67428e-11
+    scale = 50 / AU  # 250/AU: 1AU=100 pixels
+    timeStep = 3600 * 72  # 1 day
+
+    def __init__(self, x, y, radius, color, mass):
+        self.x = x
+        self.y = y
+        self.radius = radius
+        self.color = color
+        self.mass = mass
+
+        self.orbit = []
+        self.star = False
+        self.distanceToSun = 0
+
+        self.velX = 0
+        self.velY = 0
+
+    def draw(self, Window):
+        x = self.x * Planet.scale + width / 2
+        y = self.y * Planet.scale + height / 2
+
+        if len(self.orbit) > 2:
+            updated_points = []
+            for point in self.orbit:
+                x, y = point
+                x = x * Planet.scale + width / 2
+                y = y * Planet.scale + height / 2
+                updated_points.append((x, y))
+
+            pygame.draw.lines(Window, self.color, False, updated_points, 2)
+
+        pygame.draw.circle(Window, self.color, (x, y), self.radius)
+
+        if not self.star:
+            # Show distance to the star
+            distance = self.distanceToSun / 1000 # Distance in km
+            distanceText = FONT.render(f'{distance:.2e} km', True, white)
+            textOutline = FONT.render(f'{distance:.2e} km', 1, limeGreen)
+            textOutlineRectangle = textOutline.get_rect(center=(x, y))
+            Window.blit(textOutline, (x - distanceText.get_width() / 2,
+                                      y - distanceText.get_height() / 2))# Add a colored outline
+            Window.blit(distanceText, textOutlineRectangle)
+
+
+    def attraction(self, other):
+        otherX, otherY = other.x, other.y
+        distanceX = otherX - self.x
+        distanceY = otherY - self.y
+        distance = math.sqrt(distanceX ** 2 + distanceY ** 2)
+        if distance < self.radius + other.radius:
+            distance = self.radius + other.radius # Assign proximity limit
+
+        if other.star:
+            self.distanceToSun = distance
+
+        force = self.gravity * self.mass * other.mass / distance ** 2
+        theta = math.atan2(distanceY, distanceX)
+        Fx = math.cos(theta) * force
+        Fy = math.sin(theta) * force
+        return Fx, Fy
+
+    def update_position(self, planets):
+        totalFx = totalFy = 0
+        for planet in planets:
+            if self == planet:
+                continue
+
+            Fx, Fy = self.attraction(planet)
+            totalFx += Fx
+            totalFy += Fy
+
+        self.velX += totalFx / self.mass * Planet.timeStep
+        self.velY += totalFy / self.mass * Planet.timeStep
+
+        self.x += self.velX * Planet.timeStep
+        self.y += self.velY * Planet.timeStep
+        self.orbit.append((self.x, self.y))
+
+
+def main():
+    run = True
+    clock = pygame.time.Clock()
+
+    # System A
+    starA = Planet(originStarA[0], originStarA[1], 33,
+                   color=colorStarA, mass=2.98892 * 10 ** 31)
+    starA.velX = 5.0 * 1000
+    starA.velY = -2.0 * 1000
+    starA.star = True
+
+    planetA1 = Planet(x=originStarA[0] + 2.252 * Planet.AU, y=originStarA[1],
+                      radius=15, color=colorPlanetA1, mass=44.10 * 10 ** 27)
+    planetA1.velY = -75.4 * 1000
+
+    planetA2 = Planet(x=originStarA[0] - 4.114 * Planet.AU, y=originStarA[1], radius=25,
+                      color=colorPlanetA2, mass=51.10 * 10 ** 28)
+    planetA2.velY = 60.4 * 1000
+
+    moonA2i = Planet(x=originStarA[0] - 4.976 * Planet.AU, y=originStarA[1], radius=10,
+                     color=colorMoonA2i, mass=35.41 * 10 ** 9)
+    moonA2i.velY = 41.9 * 1000
+    moonA2i.velX = 0 * 1000
+
+    planetA3 = Planet(x=originStarA[0] + 6.519 * Planet.AU, y=originStarA[1], radius=15,
+                      color=colorPlanetA3, mass=26.10 * 10 ** 23)
+    planetA3.velY = -50.9 * 1000
+
+    # System B
+    starB = Planet(originStarB[0], originStarB[1], 29,
+                   color=colorStarB, mass=76.4541 * 10 ** 29)
+    starB.velX = -1.0 * 1000
+    starB.velY = 0.7 * 1000
+    starB.star = True
+
+    planetB1 = Planet(x=originStarB[0] - 1.252 * Planet.AU, y=originStarB[1], radius=14,
+                      color=colorPlanetB1, mass=31.10 * 10 ** 19)
+    planetB1.velY = -51.8 * 1000
+
+    planetB2 = Planet(x=originStarB[0] + 3.871 * Planet.AU, y=originStarB[1], radius=22,
+                      color=colorPlanetB2, mass=4.20 * 10 ** 24)
+    planetB2.velY = 17.4 * 1000
+    
+    planetB3 = Planet(x=originStarB[0] - 9.714 * Planet.AU, y=originStarB[1], radius=27,
+                      color=colorPlanetB3, mass=81.10 * 10 ** 27)
+    planetB3.velY = -17.4 * 1000
+
+    moonB3i = Planet(x=originStarB[0] - 9.347 * Planet.AU, y=originStarB[1], radius=11,
+                     color=colorMoonB3i, mass=65.10 * 10 ** 11)
+    moonB3i.velY = -8.0 * 1000
+    moonB3i.velX = 0* 1000
+
+    # Put the plants in a list
+    systemA = [starA, planetA1, moonA2i, planetA2, planetA3]
+    systemB = [starB, planetB1, planetB2, planetB3, moonB3i]
+
+    systems = []
+    systems.extend(systemA)
+    systems.extend(systemB)
+
+    while run:
+        fps = 60  # Run simulation at specified fps
+        clock.tick(fps)
+        window.fill(black)
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                run = False
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    run = False
+
+        for planet in systems:
+            planet.update_position(systems)
+            planet.draw(window)
+
+        pygame.display.update()
+
+    pygame.quit()
+main()
