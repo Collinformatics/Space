@@ -7,7 +7,7 @@ pygame.init()
 font = pygame.font.SysFont("comicsans", 16)
 
 # Window parameters
-width, height = 1500, 1100
+width, height = pygame.display.Info().current_w, pygame.display.Info().current_h
 window = pygame.display.set_mode((width, height))
 pygame.display.set_caption('Solar System Simulation')
 
