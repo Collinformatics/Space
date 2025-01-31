@@ -194,6 +194,7 @@ def main():
         clock.tick(fps)
         window.fill(black)
 
+        # Close the window
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 run = False
