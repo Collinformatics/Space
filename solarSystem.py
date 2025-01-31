@@ -171,9 +171,13 @@ def main():
         clock.tick(fps)
         window.fill(black)
 
+        # Close the window
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 run = False
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    run = False
 
         for planet in planets:
             planet.update_position(planets)
