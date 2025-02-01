@@ -2,18 +2,11 @@ import math
 import pygame
 import sys
 
-AU = 1.496e+11  # Astronomical Unit in meters
-
+# User Inputs
 inSelectPlanet = 'earth'
-inSimulationScale = 30  # Large planets: 300, Small planets: 30
-inOrbitalDistance = 50*10**1
-print(f'Scale: {inSimulationScale:,}\n'
-      f'Orbital Distance: {inOrbitalDistance:,} km\n')
-
-
-pygame.init()
-
-font = pygame.font.SysFont("comicsans", 16)
+inOrbitalDistance = 10000 # Km to planet
+inScreenWidth = 10**9 # Screen width in km
+inExecuteSlingshot = False
 
 # Window parameters
 width, height = pygame.display.Info().current_w, pygame.display.Info().current_h
@@ -38,9 +31,6 @@ magenta = '#EC0588'
 textDistance = white
 textOutline = '#930FC4'
 
-FONT = pygame.font.SysFont('Courier New', 20, bold=True)
-
-
 # Make the planets
 planets = {
     "sun": {"radius": 695700, "color": "orange", "mass": 1.989 * 10 ** 30},
@@ -54,12 +44,20 @@ planets = {
     "neptune": {"radius": 24622, "color": "darkblue", "mass": 1.024 * 10 ** 26}
 }
 
+# Initialize simulation
+pygame.init()
+font = pygame.font.SysFont("comicsans", 16)
+FONT = pygame.font.SysFont('Courier New', 20, bold=True)
+
+
 
 class Planet:
+    # Simulation parameters
     gravity = 6.67428e-11
     timeStep = 3600 * 24  # 1 day
-    scale = inSimulationScale
-
+    simulationScale = inScreenWidth / width
+    print(f'Screen Width: {inScreenWidth:.2e} km\n'
+          f'Simulation Scale: {simulationScale:.2e}')
 
     def __init__(self, x, y, radius, color, mass):
         self.x = x
@@ -76,15 +74,15 @@ class Planet:
 
 
     def draw(self, Window):
-        x = self.x * Planet.scale + width / 2
-        y = self.y * Planet.scale + height / 2
+        x = self.x * Planet.simulationScale + width / 2
+        y = self.y * Planet.simulationScale + height / 2
 
         if len(self.orbit) > 2:
             updated_points = []
             for point in self.orbit:
                 x, y = point
-                x = x * Planet.scale + width / 2
-                y = y * Planet.scale + height / 2
+                x = x * Planet.simulationScale + width / 2
+                y = y * Planet.simulationScale + height / 2
                 updated_points.append((x, y))
 
             pygame.draw.lines(Window, self.color, False, updated_points, 2)
@@ -169,8 +167,11 @@ def main():
     spaceship = Spaceship(x=planet.x + inOrbitalDistance, y=planet.y + inOrbitalDistance)
 
 
-    # Put the plants in a list
-    objects = [planet, spaceship]
+    # Select: Simulated objects
+    if inExecuteSlingshot:
+        objects = [planet, spaceship]
+    else:
+        objects = [planet]
 
     while run:
         fps = 60  # Run simulation at specified fps
