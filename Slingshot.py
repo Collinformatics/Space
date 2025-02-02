@@ -6,10 +6,9 @@ import time
 # User Inputs
 inSelectPlanet = 'earth'
 inOrbitalDistance = 10**4 # Km to planet
-inScreenWidth = 5*10**4 # Screen width in km
-inDataFeedInterval = 2 # datapoints/s
+inScreenWidth = 4*10**7 # Screen width in km
+inDataFeedInterval = 5 # datapoints/s
 inExecuteSlingshot = True
-
 
 # Initialize simulation
 pygame.init()
@@ -60,21 +59,24 @@ planets = {
 
 
 def makeObject(planetName, posX, posY, scale):
+    # Scale the coordinates from km to pixels
+    orbitKm = posX
+    posX = posX / scale # km / (km/pixel)
+    posY = posY / scale
+
+    # Define: Object parameters
     if planetName == 'spaceship':
-        orbitKm = posX
-        posX = posX / scale
         mass = 30000  # Mass in kg
         color = '#C3C3C3'
         radiusObjectKm = 2*inScreenWidth/10**2
         radiusObjectPixels = radiusObjectKm / scale
     else:
         try:
-            # Get planet data
             data = planets[planetName]
-            mass = data["mass"]  # Mass in kg
+            mass = data["mass"]
             color = data["color"]
             radiusObjectKm = data["radius"]
-            radiusObjectPixels = radiusObjectKm / scale # km / (km/pixel)
+            radiusObjectPixels = radiusObjectKm / scale
         except KeyError:
             print(f'Planet name not found: {planetName}')
             sys.exit()
@@ -99,8 +101,8 @@ def makeObject(planetName, posX, posY, scale):
 
 class SimulateObject:
     # Simulation parameters
-    gravity = 6.67428e-11
-    timeStep = 1000 # 3600  # 1 hr/s: 3600, 1 day/s: 3600 * 24
+    gravity = 6.67428e-11 # m**3/(kg * s**2)
+    timeStep = 10 # 3600  # 1 hr/s: 3600, 1 day/s: 3600 * 24
     simulationScale = inScreenWidth / width
     print(f'\nScreen width: {inScreenWidth:,.0f} km\n'
           f'       Scale: {simulationScale:,.2f} km/pixels\n')
@@ -116,7 +118,6 @@ class SimulateObject:
         self.velX = 0
         self.velY = 0
         self.vel = 0
-
 
     def draw(self, Window):
         x = self.x + width / 2
@@ -160,7 +161,6 @@ class SimulateObject:
         self.velX += totalFx / self.mass * SimulateObject.timeStep
         self.velY += totalFy / self.mass * SimulateObject.timeStep
         self.vel = math.sqrt(self.velX**2 + self.velY**2)
-
         self.x += self.velX * SimulateObject.timeStep
         self.y += self.velY * SimulateObject.timeStep
         self.orbit.append((self.x, self.y))
@@ -177,8 +177,8 @@ def main(simulationTime, intervalCount=0):
 
     # Create: Spaceship
     spaceship = makeObject(planetName='spaceship',
-                           posX=inOrbitalDistance,
-                           posY=0,
+                           posX=inScreenWidth / 2,
+                           posY=inOrbitalDistance,
                            scale=SimulateObject.simulationScale)
 
     # Verify objects
@@ -224,7 +224,7 @@ def main(simulationTime, intervalCount=0):
                       f'{purpleConsole}{objectSimulate.vel:.2e} m/s{resetColor}')
 
         # Update and track objects
-        objs = ['spaceship',inSelectPlanet]
+        objs = ['spaceship', inSelectPlanet]
         printVel = False
         for index, objectSimulate in enumerate(objectsList):
             currentTime = time.time()
