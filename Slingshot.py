@@ -25,6 +25,7 @@ grey = '#989898'
 white = '#FFFFFF'
 red = '#DC0707'
 orange = '#D06507'
+tan = '#A0825A'
 yellow = '#FFD918'
 limeGreen = '#0FEC05'
 green = '#0F5B0F'
@@ -39,15 +40,15 @@ textOutline = '#930FC4'
 
 # Make the planets
 planets = {
-    "sun": {"radius": 695700, "color": "orange", "mass": 1.989 * 10 ** 30},
-    "mercury": {"radius": 2440, "color": "pink", "mass": 3.285 * 10 ** 23},
-    "venus": {"radius": 6052, "color": "limeGreen", "mass": 4.867 * 10 ** 24},
-    "earth": {"radius": 6371, "color": "cyan", "mass": 5.972 * 10 ** 24},
-    "mars": {"radius": 3390, "color": "red", "mass": 6.39 * 10 ** 23},
-    "jupiter": {"radius": 69911, "color": "brown", "mass": 1.898 * 10 ** 27},
-    "saturn": {"radius": 58232, "color": "gold", "mass": 5.683 * 10 ** 26},
-    "uranus": {"radius": 25362, "color": "lightblue", "mass": 8.681 * 10 ** 25},
-    "neptune": {"radius": 24622, "color": "darkblue", "mass": 1.024 * 10 ** 26}
+    "sun": {"radius": 695700, "color": orange, "mass": 1.989 * 10 ** 30},
+    "mercury": {"radius": 2440, "color": pink, "mass": 3.285 * 10 ** 23},
+    "venus": {"radius": 6052, "color": limeGreen, "mass": 4.867 * 10 ** 24},
+    "earth": {"radius": 6371, "color": cyan, "mass": 5.972 * 10 ** 24},
+    "mars": {"radius": 3390, "color": red, "mass": 6.39 * 10 ** 23},
+    "jupiter": {"radius": 69911, "color": tan, "mass": 1.898 * 10 ** 27},
+    "saturn": {"radius": 58232, "color": yellow, "mass": 5.683 * 10 ** 26},
+    "uranus": {"radius": 25362, "color": blue, "mass": 8.681 * 10 ** 25},
+    "neptune": {"radius": 24622, "color": darkBlue, "mass": 1.024 * 10 ** 26}
 }
 
 
@@ -82,7 +83,6 @@ def makeObject(planetName, posX, posY, scale):
     object = SimulateObject(x=posX, y=posY, radius=radiusObjectPixels,
                        color=color, mass=mass)
     return object
-
 
 
 class SimulateObject:
