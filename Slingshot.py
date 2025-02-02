@@ -3,11 +3,11 @@ import pygame
 import sys
 
 # User Inputs
-inSelectPlanet = 'saturn'
-inOrbitalDistance = 10000 # Km to planet
-inScreenWidth = 10**6 # Screen width in km
+inSelectPlanet = 'earth'
+inOrbitalDistance = 5*10**2 # Km to planet
+inScreenWidth = 10**7 # Screen width in km
 inDistancePerPixel = 50 # Km/pixel
-inExecuteSlingshot = False
+inExecuteSlingshot = True
 
 # Initialize simulation
 pygame.init()
@@ -51,35 +51,47 @@ planets = {
 }
 
 
+def makeObject(planetName, posX, posY, scale):
+    if planetName == 'spaceship':
+        posX = posX / scale
+        mass = 30000  # Mass in kg
+        color = '#C3C3C3'
+        radiusObjectKm = inScreenWidth/10**2
+        radiusObjectPixels = radiusObjectKm / scale
+    else:
+        try:
+            # Get planet data
+            data = planets[planetName]
+            mass = data["mass"]  # Mass in kg
+            color = data["color"]
+            radiusObjectKm = data["radius"]
+            radiusObjectPixels = radiusObjectKm / scale # km / (km/pixel)
+        except KeyError:
+            print(f'Planet name not found: {planetName}')
+            sys.exit()
 
-def getPlanet(planetName, scale):
-    try:
-        # Get planet data
-        data = planets[planetName]
-        planetRadiusKm = data["radius"]
-        planetRadiusPixels = planetRadiusKm / scale # km / (km/pixel)
-        print(f'Selected Planet: {inSelectPlanet}\n'
-              f'     Scale: {scale:,.2f} km/pixel\n'
-              f'     Radius: {planetRadiusKm:,} km\n'
-              f'             {planetRadiusPixels:,.0f} pixels')
+    # Print: Object parameters
+    print(f'Simulate: {planetName}\n'
+          f'     Mass: {mass} kg\n'
+          f'     Radius: {radiusObjectKm:,.0f} km\n'
+          f'             {radiusObjectPixels:,.0f} pixels\n'
+          f'     Position x: {posX}\n'
+          f'     Position y: {posY}\n')
 
-        # Create the Planet
-        planet = Planet(x=0, y=0, radius=planetRadiusPixels,
-                        color=data["color"], mass=data["mass"])
-        return planet
-    except Exception as e:
-        print(f'Error creating planet: {e}')
-        return None
+    # Create the Planet
+    object = SimulateObject(x=posX, y=posY, radius=radiusObjectPixels,
+                       color=color, mass=mass)
+    return object
 
 
 
-class Planet:
+class SimulateObject:
     # Simulation parameters
     gravity = 6.67428e-11
     timeStep = 3600 * 24  # 1 day
     simulationScale = inScreenWidth / width
     print(f'\nScreen width: {inScreenWidth:,.0f} km\n'
-          f'         scale: {simulationScale:,.2f} km/pixels\n')
+          f'       Scale: {simulationScale:,.2f} km/pixels\n')
 
     def __init__(self, x, y, radius, color, mass):
         self.x = x
@@ -94,15 +106,15 @@ class Planet:
 
 
     def draw(self, Window):
-        x = self.x * Planet.simulationScale + width / 2
-        y = self.y * Planet.simulationScale + height / 2
+        x = self.x * SimulateObject.simulationScale + width / 2
+        y = self.y * SimulateObject.simulationScale + height / 2
 
         if len(self.orbit) > 2:
             updated_points = []
             for point in self.orbit:
                 x, y = point
-                x = x * Planet.simulationScale + width / 2
-                y = y * Planet.simulationScale + height / 2
+                x = x * SimulateObject.simulationScale + width / 2
+                y = y * SimulateObject.simulationScale + height / 2
                 updated_points.append((x, y))
             pygame.draw.lines(Window, self.color, False, updated_points, 2)
         pygame.draw.circle(Window, self.color, (x, y), self.radius)
@@ -132,32 +144,12 @@ class Planet:
             totalFx += Fx
             totalFy += Fy
 
-        self.velX += totalFx / self.mass * Planet.timeStep
-        self.velY += totalFy / self.mass * Planet.timeStep
+        self.velX += totalFx / self.mass * SimulateObject.timeStep
+        self.velY += totalFy / self.mass * SimulateObject.timeStep
 
-        self.x += self.velX * Planet.timeStep
-        self.y += self.velY * Planet.timeStep
+        self.x += self.velX * SimulateObject.timeStep
+        self.y += self.velY * SimulateObject.timeStep
         self.orbit.append((self.x, self.y))
-
-
-
-class Spaceship:
-    def __init__(self, x, y):
-        self.x = x
-        self.y = y
-        self.mass = 30000 # Mass in kg
-        self.radius = 30
-        self.color = '#C3C3C3'
-
-    def update_position(self, objects):
-        # You can add orbital movement logic here, if needed.
-        pass
-
-    def draw(self, window):
-        pygame.draw.circle(window, self.color,
-                           (self.x + 400, self.y + 300),
-                           self.radius)
-
 
 
 def main():
@@ -165,21 +157,30 @@ def main():
     clock = pygame.time.Clock()
 
     # Create: Planet
-    planet = getPlanet(planetName=inSelectPlanet, scale=Planet.simulationScale)
-    if planet is None:  # Prevent attribute errors
-        print("Error: Planet creation failed.")
-        return
+    planet = makeObject(planetName=inSelectPlanet,
+                       posX=0, posY=0,
+                       scale=SimulateObject.simulationScale)
+
+    # Create: Spaceship
+    spaceship = makeObject(planetName='spaceship',
+                           posX=inOrbitalDistance,
+                           posY=0.08,
+                           scale=SimulateObject.simulationScale)
+
+    # Verify objects
+    if planet is None or spaceship is None:
+        print('ERROR: Object creation failed.\n'
+              f'     Planet: {planet}\n'
+              f'     Ship: {spaceship}')
+        sys.exit()
     # else:
     #     planet.velX = 0
     #     planet.velY = 0
 
-    # Create: Spaceship
-    spaceship = Spaceship(x=planet.x + inOrbitalDistance, y=planet.y + inOrbitalDistance)
-
 
     # Select: Simulated objects
     if inExecuteSlingshot:
-        objects = [planet, spaceship]
+        objects = [spaceship] # planet,
     else:
         objects = [planet]
 
