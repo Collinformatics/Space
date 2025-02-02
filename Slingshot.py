@@ -3,10 +3,16 @@ import pygame
 import sys
 
 # User Inputs
-inSelectPlanet = 'earth'
+inSelectPlanet = 'saturn'
 inOrbitalDistance = 10000 # Km to planet
-inScreenWidth = 10**9 # Screen width in km
+inScreenWidth = 10**6 # Screen width in km
+inDistancePerPixel = 50 # Km/pixel
 inExecuteSlingshot = False
+
+# Initialize simulation
+pygame.init()
+font = pygame.font.SysFont("comicsans", 16)
+FONT = pygame.font.SysFont('Courier New', 20, bold=True)
 
 # Window parameters
 width, height = pygame.display.Info().current_w, pygame.display.Info().current_h
@@ -44,10 +50,26 @@ planets = {
     "neptune": {"radius": 24622, "color": "darkblue", "mass": 1.024 * 10 ** 26}
 }
 
-# Initialize simulation
-pygame.init()
-font = pygame.font.SysFont("comicsans", 16)
-FONT = pygame.font.SysFont('Courier New', 20, bold=True)
+
+
+def getPlanet(planetName, scale):
+    try:
+        # Get planet data
+        data = planets[planetName]
+        planetRadiusKm = data["radius"]
+        planetRadiusPixels = planetRadiusKm / scale # km / (km/pixel)
+        print(f'Selected Planet: {inSelectPlanet}\n'
+              f'     Scale: {scale:,.2f} km/pixel\n'
+              f'     Radius: {planetRadiusKm:,} km\n'
+              f'             {planetRadiusPixels:,.0f} pixels')
+
+        # Create the Planet
+        planet = Planet(x=0, y=0, radius=planetRadiusPixels,
+                        color=data["color"], mass=data["mass"])
+        return planet
+    except Exception as e:
+        print(f'Error creating planet: {e}')
+        return None
 
 
 
@@ -56,8 +78,8 @@ class Planet:
     gravity = 6.67428e-11
     timeStep = 3600 * 24  # 1 day
     simulationScale = inScreenWidth / width
-    print(f'Screen Width: {inScreenWidth:.2e} km\n'
-          f'Simulation Scale: {simulationScale:.2e}')
+    print(f'\nScreen width: {inScreenWidth:,.0f} km\n'
+          f'         scale: {simulationScale:,.2f} km/pixels\n')
 
     def __init__(self, x, y, radius, color, mass):
         self.x = x
@@ -65,10 +87,8 @@ class Planet:
         self.radius = radius
         self.color = color
         self.mass = mass
-
         self.orbit = []
         self.distance = 0
-
         self.velX = 0
         self.velY = 0
 
@@ -84,9 +104,7 @@ class Planet:
                 x = x * Planet.simulationScale + width / 2
                 y = y * Planet.simulationScale + height / 2
                 updated_points.append((x, y))
-
             pygame.draw.lines(Window, self.color, False, updated_points, 2)
-
         pygame.draw.circle(Window, self.color, (x, y), self.radius)
 
 
@@ -142,26 +160,18 @@ class Spaceship:
 
 
 
-def getPlanet(name):
-    if name in planets:
-        data = planets[name]
-        planet = Planet(x=0, y=0, radius=100,
-                        color=data["color"], mass=data["mass"])
-        return planet
-    else:
-        print(f"Planet '{name}' not found.")
-        sys.exit()
-
-
-
 def main():
     run = True
     clock = pygame.time.Clock()
 
     # Create: Planet
-    planet = getPlanet(inSelectPlanet)
-    planet.velX = 0 * 1000
-    planet.velY = 0 * 1000
+    planet = getPlanet(planetName=inSelectPlanet, scale=Planet.simulationScale)
+    if planet is None:  # Prevent attribute errors
+        print("Error: Planet creation failed.")
+        return
+    # else:
+    #     planet.velX = 0
+    #     planet.velY = 0
 
     # Create: Spaceship
     spaceship = Spaceship(x=planet.x + inOrbitalDistance, y=planet.y + inOrbitalDistance)
