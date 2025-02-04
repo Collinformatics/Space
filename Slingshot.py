@@ -151,9 +151,7 @@ class SimulateObject:
         self.distance = math.sqrt(distanceX ** 2 + distanceY ** 2)
         if self.distance < self.distanceMin:
             self.distanceMin = self.distance
-        print(f'Dist: {self.distance}\n'
-              f'      {self.distanceMin}\n')
-        self.displayDistance(window)
+        self.displayData(window)
 
         force = self.gravity * self.mass * other.mass / (self.distance * 1000) ** 2
         theta = math.atan2(distanceY, distanceX)
@@ -183,16 +181,30 @@ class SimulateObject:
             self.orbit.append((self.x, self.y))
 
 
-    def displayDistance(self, Window):
-        font = pygame.font.Font(None, 40)  # Choose font and size
+        def displayData(self, Window):
+        # Choose font and size
+        firstline = 20
+        fontSize = 40
+        font = pygame.font.Font(None, fontSize)
+
+
         textDistance = font.render(f'Distance: {self.distance:,.0f} km',
                                    True, textColorSimulation)
         textDistanceMin = font.render(f'Orbit Distance: {self.distanceMin:,.0f} km',
                                       True, textColorSimulation)
-        textDistanceRect = textDistance.get_rect(center=(width // 2, 20))
-        textDistanceMinRect = textDistanceMin.get_rect(center=(width // 2, 60))
+        textVel = font.render(f'Velocity: {self.vel:,.2e} m/s',
+                              True, textColorSimulation)
+
+        textDistanceRect = textDistance.get_rect(
+            center=(width // 4, firstline))
+        textDistanceMinRect = textDistanceMin.get_rect(
+            center=(width // 2, firstline))
+        textVelRect = textVel.get_rect(
+            center=((width // 2) + (width // 4), firstline))
+
         Window.blit(textDistance, textDistanceRect)
         Window.blit(textDistanceMin, textDistanceMinRect)
+        Window.blit(textVel, textVelRect)
 
 
 def main(simulationTime, intervalCount=0):
