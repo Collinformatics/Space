@@ -6,16 +6,15 @@ import time
 # User Input 1:
 inSelectPlanet = 'earth'
 inSpaceshipVel = 3*10**5 # km/s
-inSpaceshipTrajectory = 9.8 # Theta
+inSpaceshipTrajectory = 5 # Theta
 
 # User Input 2:
-inSimulationSpeed = 4*10**-3 # 1 s/s = 1, 1 hr/s = 3600, 1 day/s = 3600 * 24
-inScreenWidth = 2*10**5 # Screen width in km
-inOrbitalDistanceX = inScreenWidth / 3 # Km to planet
-inOrbitalDistanceY = inScreenWidth / 10
-print(inOrbitalDistanceY)
+inSimulationSpeed = 2*10**-2 # 1 s/s = 1, 1 hr/s = 3600, 1 day/s = 3600 * 24
+inScreenWidth = 4*10**5 # Screen width in km
+inScaleOrbitX = 2
+inScaleOrbitY = 2
 inScaleObjects = 10**0
-inDataFeedInterval = 2 # datapoints/s
+inDataFeedInterval = 100 # datapoints/s
 
 # Initialize simulation
 pygame.init()
@@ -32,7 +31,7 @@ black = '#000000'
 grey = '#989898'
 white = '#FFFFFF'
 red = '#DC0707'
-orange = '#D06507'
+orange = '#FF8800'
 tan = '#A0825A'
 yellow = '#FFD918'
 greenLime = '#0FEC05'
@@ -65,9 +64,9 @@ planets = {
 }
 
 
-def makeObject(planetName, scale, posX, posY):
+def makeObject(planetName, objectName, scale, posX, posY):
     # Define: Object parameters
-    if planetName == 'spaceship':
+    if objectName == 'spaceship':
         mass = 10000  # Mass in kg
         color = '#C3C3C3'
         radiusObjectKm = 4000
@@ -78,28 +77,30 @@ def makeObject(planetName, scale, posX, posY):
             posX -= radiusObjectKm
     else:
         try:
-            data = planets[planetName]
+            data = planets[objectName]
             mass = data["mass"]
             color = data["color"]
             radiusObjectKm = data["radius"]
         except KeyError:
-            print(f'Planet name not found: {planetName}')
+            print(f'Planet name not found: {objectName}')
             sys.exit()
     radiusObject = radiusObjectKm / scale
 
     # Define: Object parameters
     orbitKm = posX
+    print(f'Orbit: {posX}, {posY}')
     posX = posX / scale  # km / (km/pixel)
     posY = posY / scale
+    print(f'Orbit: {posX}, {posY}')
 
     # Print: Object parameters
-    print(f'Simulate: {planetName}\n'
+    print(f'Simulate: {objectName}\n'
           f'     Mass: {mass:,.2e} kg\n'
           f'     Radius: {radiusObjectKm:,.0f} km\n'
           f'     Radius: { radiusObject:,.0f} pixels\n')
 
     # Create the Planet
-    object = SimulateObject(label=planetName, x=posX, y=posY,
+    object = SimulateObject(planet=planetName, label=objectName, x=posX, y=posY,
                             radius=radiusObject, color=color, mass=mass)
     return object
 
@@ -112,7 +113,8 @@ class SimulateObject:
     print(f'\nScreen width: {inScreenWidth:,.0f} km\n'
           f'       Scale: {simulationScale:,.2f} km/pixels\n')
 
-    def __init__(self, label, x, y, radius, color, mass):
+    def __init__(self, planet, label, x, y, radius, color, mass):
+        self.planetName = planet
         self.name = label
         self.x = x
         self.xKm = x * inScreenWidth / width
@@ -124,22 +126,19 @@ class SimulateObject:
         self.orbit = []
         self.distance = 0
         self.distanceMin = 10**99
-        self.gravity = 0
-        self.gravityMax = 0
-        self.thetaRadians = math.radians(inSpaceshipTrajectory)
+        self.force = 0
+        self.forceMax = 0
+        self.theta = inSpaceshipTrajectory
+        self.thetaRadians = math.radians(self.theta)
         if self.name == 'spaceship':
             self.velX = inSpaceshipVel * math.cos(self.thetaRadians) * 1000
             self.velY = -inSpaceshipVel * math.sin(self.thetaRadians) * 1000
             self.vel = math.sqrt(self.velX**2 + self.velY**2)
-            print(f'Initial Trajectory:\n'
-                  f'          Theta: {inSpaceshipTrajectory} degrees\n'
-                  f'       Velocity: {self.vel:,.2e} m/s\n'
-                  f'     Velocity x: {self.velX:,.2e} m/s\n'
-                  f'     Velocity y: {-self.velY:,.2e} m/s\n')
         else:
             self.velX = 0
             self.velY = 0
             self.vel = 0
+        self.velMax = 0
 
 
     def draw(self, Window):
@@ -167,13 +166,13 @@ class SimulateObject:
         if self.name == 'spaceship':
             self.displayData(window)
 
-        force = self.gravity * self.mass * other.mass / ((self.distance * 1000) ** 2)
-        self.gravity = force
-        if force > self.gravityMax:
-            self.gravityMax = force
+        # Calculate: Gravitational force
+        self.force = (self.gravity * self.mass * other.mass) / (self.distance * 10 ** 3)
+        if self.force > self.forceMax:
+            self.forceMax = self.force
         theta = math.atan2(distanceY, distanceX)
-        Fx = math.cos(theta) * force
-        Fy = math.sin(theta) * force
+        Fx = math.cos(theta) * self.force
+        Fy = math.sin(theta) * self.force
         return Fx, Fy
 
 
@@ -191,6 +190,8 @@ class SimulateObject:
             self.velX += totalFx / self.mass * SimulateObject.timeStep
             self.velY += totalFy / self.mass * SimulateObject.timeStep
             self.vel = math.sqrt(self.velX**2 + self.velY**2)
+            if self.vel > self.velMax:
+                self.velMax = self.vel
             self.x += ((self.velX * SimulateObject.timeStep) /
                        (1000 * self.simulationScale))
             self.y += ((self.velY * SimulateObject.timeStep) /
@@ -205,45 +206,25 @@ class SimulateObject:
         fontSize = 40
         font = pygame.font.Font(None, fontSize)
         line1 = 20
-        line2 = 50
-        center = width // 2
-        offsetSmall = width // 4
-        offsetMid = 250
-        
-        textDistance = font.render(
-            f'Distance: {self.distance:,.0f} km',
-            True, textColorSimulation)
-        textDistanceRect = textDistance.get_rect(
-            center=(offsetSmall, line1))
-        Window.blit(textDistance, textDistanceRect)
-        
-        textDistanceMin = font.render(
-            f'Minimum Distance: {self.distanceMin:,.0f} km',
-            True, textColorSimulation)
-        textDistanceMinRect = textDistanceMin.get_rect(
-            center=(center, line1))
-        Window.blit(textDistanceMin, textDistanceMinRect)
-        
-        textVel = font.render(
-            f'Velocity: {self.vel/1000:,.2e} km/s',
-            True, textColorSimulation)
-        textVelRect = textVel.get_rect(
-            center=(center + offsetSmall, line1))
-        Window.blit(textVel, textVelRect)
+        spacer = 35
 
-        textGravity = font.render(
-            f'Gravity: {self.gravity} N',
-            True, textColorSimulation)
-        textGravityRect = textVel.get_rect(
-            center=(center - offsetMid, line2))
-        Window.blit(textGravity, textGravityRect)
 
-        textGravityMax = font.render(
-            f'Maximum Gravity: {self.gravity} N',
-            True, textColorSimulation)
-        textGravityMaxRect = textVel.get_rect(
-            center=(center + offsetMid, line2))
-        Window.blit(textGravityMax, textGravityMaxRect)
+        def displayInfo(text, x, y):
+            text = font.render(text, True, textColorSimulation)
+            textRect = text.get_rect(center=(x, y))
+            Window.blit(text, textRect)
+
+        # Select data
+        data = [f'{self.planetName.capitalize()}',
+                f'Distance: {self.distance:,.2e} km',
+                f'Distance Min: {self.distanceMin:,.2e} km',
+                f'Gravity: {self.force:.3e} N',
+                f'Gravity Max: {self.forceMax:.3e} N',
+                f'Theta: {self.theta}\u00B0',
+                f'Velocity: {self.vel / 1000:,.2e} km/s',
+                f'Velocity Max: {self.velMax / 1000:,.2e} km/s']
+        for index, info in enumerate(data):
+            displayInfo(text=info, x=width // 7, y=line1+spacer*index)
 
 
 def main(simulationTime, intervalCount=0):
@@ -251,12 +232,18 @@ def main(simulationTime, intervalCount=0):
     clock = pygame.time.Clock()
 
     # Create: Planet
-    planet = makeObject(planetName=inSelectPlanet, scale=SimulateObject.simulationScale,
-                       posX=0, posY=0)
+    planet = makeObject(planetName=inSelectPlanet,
+                        objectName=inSelectPlanet,
+                        scale=SimulateObject.simulationScale,
+                        posX=0,
+                        posY=0)
 
     # Create: Spaceship
-    spaceship = makeObject(planetName='spaceship', scale=SimulateObject.simulationScale,
-                           posX=-inOrbitalDistanceX, posY=inOrbitalDistanceY)
+    spaceship = makeObject(planetName=inSelectPlanet,
+                           objectName='spaceship',
+                           scale=SimulateObject.simulationScale,
+                           posX=-width * inScaleOrbitX,
+                           posY=height * inScaleOrbitY)
 
     # Verify objects
     if planet is None or spaceship is None:
@@ -281,33 +268,13 @@ def main(simulationTime, intervalCount=0):
                 if event.key == pygame.K_ESCAPE:
                     run = False
 
-        def getData(interval):
-            if objectSimulate.name == 'spaceship':
-                print(f'Simulation time: {whiteConsole}{interval:,} s{resetColor}\n'
-                      f'     {objectSimulate.name} velocity: '
-                      f'{redConsole}{objectSimulate.vel:.2e} m/s{resetColor}')
-            else:
-                print(f'     {objectSimulate.name} velocity: '
-                      f'{purpleConsole}{objectSimulate.vel:.2e} m/s{resetColor}')
-                print(f'     Gravity: {objectSimulate.gravity:.2e} Newtons')
-
         # Update and track objects
-        printVel = False
         for index, objectSimulate in enumerate(objectsList):
-            currentTime = time.time()
-            if currentTime - simulationTime >= inDataFeedInterval:
-                intervalCount += inDataFeedInterval
-                simulationTime = time.time()
-                getData(interval=intervalCount)
-                printVel = True
-            else:
-                if printVel:
-                    getData(interval=intervalCount)
-                    printVel = False
-                    # print('End Simulation: Get the projections right')
-                    # sys.exit()
             objectSimulate.updatePosition(objectsList)
             objectSimulate.draw(window)
+            currentTime = time.time()
+            if currentTime - simulationTime >= inDataFeedInterval:
+                sys.exit()
 
         pygame.display.update()
     pygame.quit()
